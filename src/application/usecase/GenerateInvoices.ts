@@ -1,21 +1,24 @@
-import ContractDatabaseRepository from "../../infra/repository/ContractDatabaseRepository";
 import ContractRepository from "../repository/ContractRepository";
-import Presenter from "../presenter/Presenter";
-import JsonPresenter from "../../infra/presenter/JsonPresenter";
+import PresenterFactory from "../presenter/PresenterFactory";
+import EventPublisher from "../events/EventPublisher";
+import { Input, InvoiceDto } from "./Invoicing";
 import Usecase from "./Usecase";
-import Mediator from "../../infra/mediator/Mediator";
 
 export default class GenerateInvoices implements Usecase {
 
 	constructor (
-		readonly contractRepository: ContractRepository, 
-		readonly presenter: Presenter = new JsonPresenter(),
-		readonly mediator: Mediator = new Mediator()
+		readonly contractRepository: ContractRepository,
+		readonly presenterFactory: PresenterFactory<InvoiceDto[]>,
+		readonly mediator: EventPublisher
 	) {
 	}
 
-	async execute (input: Input): Promise<any> {
-		const output: Output[] = [];
+	execute (input: Input & { format?: "json" }): Promise<InvoiceDto[]>;
+	execute (input: Input & { format: "csv" }): Promise<string>;
+	execute (input: Input): Promise<InvoiceDto[] | string>;
+	async execute (input: Input): Promise<InvoiceDto[] | string> {
+		const presenter = this.presenterFactory.create(input.format);
+		const output: InvoiceDto[] = [];
 		const contracts = await this.contractRepository.list();
 		for (const contract of contracts) {
 			const invoices = contract.generateInvoices(input.month, input.year, input.type);
@@ -24,18 +27,8 @@ export default class GenerateInvoices implements Usecase {
 			}
 		}
 		await this.mediator.publish("InvoicesGenerated", output);
-		return this.presenter.present(output);
+		return presenter.present(output);
 	}
 }
 
-type Input = {
-	month: number,
-	year: number,
-	type: string,
-	format?: string
-}
-
-export type Output = {
-	date: Date,
-	amount: number
-}
+export type Output = InvoiceDto;

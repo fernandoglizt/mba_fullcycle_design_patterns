@@ -1,11 +1,11 @@
-import { Output } from "../../application/usecase/GenerateInvoices";
+import { InvoiceDto } from "../../application/usecase/Invoicing";
 import Presenter from "../../application/presenter/Presenter";
 import moment from "moment";
 
-export default class CsvPresenter implements Presenter {
+export default class CsvPresenter implements Presenter<InvoiceDto[], string> {
 
-	present(output: Output[]): any {
-		const lines: any[] = [];
+	present(output: InvoiceDto[]): string {
+		const lines: string[] = [];
 		for (const data of output) {
 			const line: string[] = [];
 			line.push(moment(data.date).format("YYYY-MM-DD"));

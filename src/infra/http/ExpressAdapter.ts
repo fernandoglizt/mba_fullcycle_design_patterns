@@ -1,4 +1,4 @@
-import HttpServer from "./HttpServer";
+import HttpServer, { HttpCallback } from "./HttpServer";
 import express from "express";
 
 export default class ExpressAdapter implements HttpServer {
@@ -9,9 +9,13 @@ export default class ExpressAdapter implements HttpServer {
 		this.app.use(express.json());
 	}
 
-	on(method: string, url: string, callback: Function): void {
+	on(method: string, url: string, callback: HttpCallback): void {
 		this.app[method](url, async function (req: any, res: any) {
-			const output = await callback(req.params, req.body, req.headers);
+			const output = await callback(req.params, req.body, req.headers, req.query);
+			if (typeof output === "string") {
+				res.type("text/plain").send(output);
+				return;
+			}
 			res.json(output);
 		});
 	}
